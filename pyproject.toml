@@ -1,0 +1,28 @@
+[project]
+name = "jurisai"
+version = "0.1.0"
+description = "jurisai using crewAI"
+authors = [{ name = "Ian Kisali", email = "iankisali@gmail.com" }]
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "boto3>=1.40.36",
+    "crewai[tools]>=0.193.2,<1.0.0",
+    "langchain-aws>=0.2.33",
+    "pydantic>=2.11.9",
+    "streamlit>=1.49.1",
+    "streamlit-chat>=0.1.1",
+]
+
+[project.scripts]
+jurisai = "jurisai.main:run"
+run_crew = "jurisai.main:run"
+train = "jurisai.main:train"
+replay = "jurisai.main:replay"
+test = "jurisai.main:test"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.crewai]
+type = "crew"
