@@ -26,3 +26,9 @@ build-backend = "hatchling.build"
 
 [tool.crewai]
 type = "crew"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/jurisai"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/jurisai/**", "README.md", "pyproject.toml", "knowledge/**"]

@@ -1,64 +1,250 @@
-from crewai import Agent, Crew, Process, Task
+import os
+from typing import Dict, Any, Optional
+from crewai import Agent, Task, Crew, Process
 from crewai.project import CrewBase, agent, crew, task
-from crewai.agents.agent_builder.base_agent import BaseAgent
-from typing import List
-# If you want to run a snippet of code before or after the crew starts,
-# you can use the @before_kickoff and @after_kickoff decorators
-# https://docs.crewai.com/concepts/crews#example-crew-class-with-decorators
+from langchain_aws import BedrockLLM
+import boto3
+import yaml
+from dotenv import load_dotenv
+
+from .tools.custom_tool import LegalResearchTool, DocumentAnalysisTool
+
+# Load environment variables
+load_dotenv()
 
 @CrewBase
-class Jurisai():
-    """Jurisai crew"""
-
-    agents: List[BaseAgent]
-    tasks: List[Task]
-
-    # Learn more about YAML configuration files here:
-    # Agents: https://docs.crewai.com/concepts/agents#yaml-configuration-recommended
-    # Tasks: https://docs.crewai.com/concepts/tasks#yaml-configuration-recommended
+class JurisAICrew():
+    """JurisAI Crew for legal assistance and research"""
     
-    # If you would like to add tools to your agents, you can learn more about it here:
-    # https://docs.crewai.com/concepts/agents#agent-tools
+    # Configuration files
+    agents_config = 'config/agents.yaml'
+    tasks_config = 'config/tasks.yaml'
+    
+    def __init__(self):
+        self.setup_llm()
+        self.setup_tools()
+    
+    def setup_llm(self):
+        """Initialize AWS Bedrock LLM"""
+        try:
+            self.bedrock_client = boto3.client(
+                'bedrock-runtime',
+                region_name=os.getenv('AWS_DEFAULT_REGION', 'us-east-1'),
+                aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+                aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY')
+            )
+            
+            self.llm = BedrockLLM(
+                client=self.bedrock_client,
+                model_id=os.getenv('BEDROCK_MODEL_ID', 'anthropic.claude-3-sonnet-20240229-v1:0'),
+                model_kwargs={
+                    "max_tokens": 4096,
+                    "temperature": 0.1,
+                    "top_p": 0.9
+                }
+            )
+            print("✅ AWS Bedrock LLM initialized successfully")
+            
+        except Exception as e:
+            print(f"⚠️ Error initializing Bedrock LLM: {e}")
+            print("Falling back to OpenAI (ensure OPENAI_API_KEY is set)")
+            # Fallback would go here
+            self.llm = None
+    
+    def setup_tools(self):
+        """Initialize custom tools"""
+        self.legal_research_tool = LegalResearchTool()
+        self.document_analysis_tool = DocumentAnalysisTool()
+        print("✅ Custom tools initialized")
+
     @agent
-    def researcher(self) -> Agent:
+    def legal_researcher(self) -> Agent:
         return Agent(
-            config=self.agents_config['researcher'], # type: ignore[index]
+            config=self.agents_config['legal_researcher'],
+            llm=self.llm,
+            tools=[self.legal_research_tool],
+            verbose=True
+        )
+
+    @agent  
+    def document_analyst(self) -> Agent:
+        return Agent(
+            config=self.agents_config['document_analyst'],
+            llm=self.llm,
+            tools=[self.document_analysis_tool],
             verbose=True
         )
 
     @agent
-    def reporting_analyst(self) -> Agent:
+    def legal_advisor(self) -> Agent:
         return Agent(
-            config=self.agents_config['reporting_analyst'], # type: ignore[index]
+            config=self.agents_config['legal_advisor'],
+            llm=self.llm,
+            tools=[],
             verbose=True
         )
 
-    # To learn more about structured task outputs,
-    # task dependencies, and task callbacks, check out the documentation:
-    # https://docs.crewai.com/concepts/tasks#overview-of-a-task
-    @task
-    def research_task(self) -> Task:
-        return Task(
-            config=self.tasks_config['research_task'], # type: ignore[index]
+    @agent
+    def client_intake(self) -> Agent:
+        return Agent(
+            config=self.agents_config['client_intake'],
+            llm=self.llm,
+            tools=[],
+            verbose=True
         )
 
     @task
-    def reporting_task(self) -> Task:
+    def legal_research_task(self) -> Task:
         return Task(
-            config=self.tasks_config['reporting_task'], # type: ignore[index]
-            output_file='report.md'
+            config=self.tasks_config['legal_research_task'],
+            agent=self.legal_researcher()
+        )
+
+    @task
+    def document_analysis_task(self) -> Task:
+        return Task(
+            config=self.tasks_config['document_analysis_task'],
+            agent=self.document_analyst()
+        )
+
+    @task
+    def legal_advice_task(self) -> Task:
+        return Task(
+            config=self.tasks_config['legal_advice_task'],
+            agent=self.legal_advisor()
+        )
+
+    @task
+    def client_intake_task(self) -> Task:
+        return Task(
+            config=self.tasks_config['client_intake_task'],
+            agent=self.client_intake()
         )
 
     @crew
     def crew(self) -> Crew:
-        """Creates the Jurisai crew"""
-        # To learn how to add knowledge sources to your crew, check out the documentation:
-        # https://docs.crewai.com/concepts/knowledge#what-is-knowledge
-
+        """Create the JurisAI crew with all agents and tasks"""
         return Crew(
-            agents=self.agents, # Automatically created by the @agent decorator
-            tasks=self.tasks, # Automatically created by the @task decorator
+            agents=self.agents,
+            tasks=self.tasks,
             process=Process.sequential,
-            verbose=True,
-            # process=Process.hierarchical, # In case you wanna use that instead https://docs.crewai.com/how-to/Hierarchical/
+            verbose=2,
+            memory=True,
+            planning=True
         )
+
+class JurisAIOrchestrator:
+    """Main orchestrator for JurisAI operations"""
+    
+    def __init__(self):
+        self.crew_instance = JurisAICrew()
+        print("🚀 JurisAI Orchestrator initialized")
+    
+    def process_legal_query(
+        self, 
+        query: str, 
+        client_type: str = "citizen",
+        jurisdiction: str = "federal"
+    ) -> Dict[str, Any]:
+        """
+        Process a legal query through the appropriate workflow
+        
+        Args:
+            query: The legal question or issue
+            client_type: Type of client (citizen, lawyer, business)
+            jurisdiction: Legal jurisdiction (federal, state, etc.)
+        
+        Returns:
+            Processed response with legal research and advice
+        """
+        try:
+            print(f"📋 Processing legal query: {query[:100]}...")
+            
+            # Prepare inputs for the crew
+            inputs = {
+                'legal_query': query,
+                'client_query': query,
+                'client_type': client_type,
+                'jurisdiction': jurisdiction,
+                'client_situation': f"Client ({client_type}) has asked: {query}"
+            }
+            
+            # Execute the crew
+            result = self.crew_instance.crew().kickoff(inputs=inputs)
+            
+            print("✅ Legal query processed successfully")
+            return {
+                'status': 'success',
+                'result': result,
+                'client_type': client_type,
+                'query': query
+            }
+            
+        except Exception as e:
+            print(f"❌ Error processing legal query: {e}")
+            return {
+                'status': 'error',
+                'error': str(e),
+                'query': query
+            }
+    
+    def analyze_document(
+        self, 
+        document_content: str, 
+        analysis_focus: str = "general",
+        client_type: str = "citizen"
+    ) -> Dict[str, Any]:
+        """
+        Analyze a legal document
+        
+        Args:
+            document_content: The text content of the document
+            analysis_focus: Type of analysis (general, risk, contract, etc.)
+            client_type: Type of client requesting analysis
+        
+        Returns:
+            Document analysis results
+        """
+        try:
+            print(f"📄 Analyzing document (focus: {analysis_focus})")
+            
+            # Prepare inputs for document analysis
+            inputs = {
+                'document_content': document_content,
+                'analysis_focus': analysis_focus,
+                'client_type': client_type
+            }
+            
+            # For document analysis, we'll use a simplified workflow
+            # focusing on the document analysis task
+            document_crew = Crew(
+                agents=[self.crew_instance.document_analyst(), self.crew_instance.legal_advisor()],
+                tasks=[self.crew_instance.document_analysis_task(), self.crew_instance.legal_advice_task()],
+                process=Process.sequential,
+                verbose=2
+            )
+            
+            # Add additional inputs for legal advice task
+            inputs.update({
+                'research_results': 'Document analysis focused',
+                'document_analysis': 'Analyzing provided document',
+                'client_situation': f'Document analysis requested by {client_type}'
+            })
+            
+            result = document_crew.kickoff(inputs=inputs)
+            
+            print("✅ Document analysis completed")
+            return {
+                'status': 'success',
+                'result': result,
+                'analysis_focus': analysis_focus,
+                'client_type': client_type
+            }
+            
+        except Exception as e:
+            print(f"❌ Error analyzing document: {e}")
+            return {
+                'status': 'error',
+                'error': str(e),
+                'analysis_focus': analysis_focus
+            }

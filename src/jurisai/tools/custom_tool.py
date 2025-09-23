@@ -1,7 +1,7 @@
 import os
 import boto3
 from typing import Dict, Any, Optional
-from crewai_tools import BaseTool
+from crewai.tools import BaseTool
 from pydantic import Field
 import json
 

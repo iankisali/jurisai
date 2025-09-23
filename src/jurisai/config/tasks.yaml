@@ -1,17 +1,99 @@
-research_task:
-  description: >
-    Conduct a thorough research about {topic}
-    Make sure you find any interesting and relevant information given
-    the current year is {current_year}.
-  expected_output: >
-    A list with 10 bullet points of the most relevant information about {topic}
-  agent: researcher
+legal_research_task:
+  description: |
+    Conduct comprehensive legal research on the provided query:
+    
+    1. Identify the core legal issues and relevant areas of law
+    2. Search for applicable case law, statutes, and regulations
+    3. Analyze how courts have ruled on similar issues
+    4. Identify the strongest legal precedents and authorities
+    5. Provide proper legal citations and summaries
+    6. Consider jurisdictional differences if applicable
+    
+    Query: {legal_query}
+    Jurisdiction: {jurisdiction}
+    Client Type: {client_type}
+    
+    Focus on providing accurate, current legal information that directly addresses the query.
+  expected_output: |
+    A comprehensive legal research report including:
+    - Summary of relevant legal issues
+    - Applicable case law with citations
+    - Relevant statutes and regulations
+    - Analysis of legal precedents
+    - Jurisdictional considerations
+    - Recommendations for next steps
 
-reporting_task:
-  description: >
-    Review the context you got and expand each topic into a full section for a report.
-    Make sure the report is detailed and contains any and all relevant information.
-  expected_output: >
-    A fully fledged report with the main topics, each with a full section of information.
-    Formatted as markdown without '```'
-  agent: reporting_analyst
+document_analysis_task:
+  description: |
+    Analyze the provided legal document thoroughly:
+    
+    1. Identify the document type and its primary purpose
+    2. Extract and analyze key terms, clauses, and obligations
+    3. Identify potential legal risks and problematic provisions
+    4. Assess compliance with applicable laws and standards
+    5. Provide specific recommendations for improvements
+    6. Flag any issues requiring immediate attention
+    
+    Document Content: {document_content}
+    Analysis Focus: {analysis_focus}
+    Client Type: {client_type}
+    
+    Provide practical, actionable analysis that helps the client understand their position.
+  expected_output: |
+    A detailed document analysis report including:
+    - Document type identification
+    - Key terms and provisions summary
+    - Risk assessment with severity levels
+    - Compliance evaluation
+    - Specific recommendations
+    - Action items and next steps
+
+legal_advice_task:
+  description: |
+    Provide strategic legal advice based on research and analysis:
+    
+    1. Review all available research and document analysis
+    2. Synthesize information into clear, actionable advice
+    3. Identify potential courses of action and their implications
+    4. Assess risks and benefits of different approaches
+    5. Determine if human lawyer consultation is needed
+    6. Provide clear next steps and recommendations
+    
+    Research Results: {research_results}
+    Document Analysis: {document_analysis}
+    Client Situation: {client_situation}
+    Client Type: {client_type}
+    
+    Ensure all advice is appropriate for the client's level of legal sophistication.
+  expected_output: |
+    Strategic legal advice including:
+    - Clear summary of the legal situation
+    - Available options and their implications
+    - Risk assessment and recommendations
+    - Timeline and priority actions
+    - Lawyer referral if needed
+    - Follow-up requirements
+
+client_intake_task:
+  description: |
+    Conduct professional client intake and case assessment:
+    
+    1. Gather essential client information and case details
+    2. Identify the primary legal issues and areas of concern
+    3. Assess the urgency and complexity of the matter
+    4. Determine appropriate service level (self-help, AI assistance, lawyer referral)
+    5. Collect relevant documents and evidence
+    6. Ensure privacy and confidentiality requirements are met
+    
+    Client Query: {client_query}
+    Client Type: {client_type}
+    
+    Maintain a professional, empathetic approach while gathering necessary information.
+  expected_output: |
+    Client intake summary including:
+    - Client information and contact details
+    - Legal issue classification
+    - Case complexity and urgency assessment
+    - Service level recommendation
+    - Required documents and evidence
+    - Next steps and timeline
