@@ -52,3 +52,86 @@ For support, questions, or feedback regarding the Jurisai Crew or crewAI.
 - [Chat with our docs](https://chatg.pt/DWjSBZn)
 
 Let's create wonders together with the power and simplicity of crewAI.
+
+
+# JurisAI - AI Legal Assistant
+
+A collaborative AI solution empowering lawyers to review and research cases faster, draft smarter, and advise with precision. JurisAI also enables citizens to seek legal advice through an intelligent AI assistant.
+
+## Features
+
+- **Multi-Agent Legal Research**: Specialized AI agents for different legal domains
+- **Document Analysis**: Contract review and legal document processing
+- **Citizen Legal Guidance**: Accessible legal advice for everyday citizens
+- **Lawyer Collaboration**: Seamless handoff between AI and human lawyers
+- **AWS Integration**: Built on AWS Bedrock, Lambda, and other AWS services
+
+## Quick Start
+
+1. **Clone the repository**
+```bash
+git clone <your-repo-url>
+cd jurisai
+```
+
+2. **Install dependencies**
+```bash
+pip install -e .
+```
+
+3. **Configure environment variables**
+```bash
+cp .env.example .env
+# Edit .env with your AWS credentials and API keys
+```
+
+4. **Run JurisAI**
+```bash
+python src/jurisai/main.py
+```
+
+## Project Structure
+
+```
+Jurisai/
+├── .gitignore
+├── knowledge/              # Knowledge base files
+├── pyproject.toml         # Project dependencies
+├── README.md              # This file
+├── .env                   # Environment variables
+└── src/
+    └── jurisai/
+        ├── __init__.py
+        ├── main.py        # Entry point
+        ├── crew.py        # Crew orchestration
+        ├── tools/         # Custom tools
+        │   ├── custom_tool.py
+        │   └── __init__.py
+        └── config/
+            ├── agents.yaml    # Agent definitions
+            └── tasks.yaml     # Task definitions
+```
+
+## AWS Setup
+
+1. Configure AWS credentials
+2. Enable Amazon Bedrock access
+3. Set up required AWS services (Lambda, S3, DynamoDB)
+
+## Development
+
+```bash
+# Install development dependencies
+pip install -e ".[dev]"
+
+# Run tests
+pytest
+
+# Format code
+black src/
+isort src/
+```
+
+## License
+
+MIT License - see LICENSE file for details.
