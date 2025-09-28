@@ -70,7 +70,7 @@ A collaborative AI solution empowering lawyers to review and research cases fast
 
 1. **Clone the repository**
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/iankisali/jurisai.git
 cd jurisai
 ```
 
