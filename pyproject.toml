@@ -8,9 +8,15 @@ dependencies = [
     "boto3>=1.40.36",
     "crewai[tools]>=0.193.2,<1.0.0",
     "langchain-aws>=0.2.33",
+    "langchain-openai>=0.2.0",
     "pydantic>=2.11.9",
     "streamlit>=1.49.1",
     "streamlit-chat>=0.1.1",
+    "fastapi>=0.104.1",
+    "uvicorn>=0.24.0",
+    "python-multipart>=0.0.6",
+    "python-dotenv>=1.0.0",
+    "fastapi-cors>=0.0.6",
 ]
 
 [project.scripts]
@@ -32,3 +38,4 @@ packages = ["src/jurisai"]
 
 [tool.hatch.build.targets.sdist]
 include = ["src/jurisai/**", "README.md", "pyproject.toml", "knowledge/**"]
+

@@ -2,7 +2,7 @@ import os
 from typing import Dict, Any, Optional
 from crewai import Agent, Task, Crew, Process
 from crewai.project import CrewBase, agent, crew, task
-from langchain_aws import BedrockLLM
+from langchain_aws import ChatBedrock
 import boto3
 import yaml
 from dotenv import load_dotenv
@@ -34,7 +34,7 @@ class JurisAICrew():
                 aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY')
             )
             
-            self.llm = BedrockLLM(
+            self.llm = ChatBedrock(
                 client=self.bedrock_client,
                 model_id=os.getenv('BEDROCK_MODEL_ID', 'anthropic.claude-3-sonnet-20240229-v1:0'),
                 model_kwargs={
@@ -48,7 +48,26 @@ class JurisAICrew():
         except Exception as e:
             print(f"⚠️ Error initializing Bedrock LLM: {e}")
             print("Falling back to OpenAI (ensure OPENAI_API_KEY is set)")
-            # Fallback would go here
+            self.setup_openai_fallback()
+    
+    def setup_openai_fallback(self):
+        """Setup OpenAI as fallback LLM"""
+        try:
+            from langchain_openai import ChatOpenAI
+            
+            self.llm = ChatOpenAI(
+                model="gpt-4o-mini",
+                temperature=0.1,
+                max_tokens=4096,
+                api_key=os.getenv('OPENAI_API_KEY')
+            )
+            print("✅ OpenAI LLM initialized as fallback")
+            
+        except ImportError:
+            print("❌ OpenAI package not available. Please install langchain-openai")
+            self.llm = None
+        except Exception as e:
+            print(f"❌ Error initializing OpenAI fallback: {e}")
             self.llm = None
     
     def setup_tools(self):
@@ -128,7 +147,7 @@ class JurisAICrew():
             agents=self.agents,
             tasks=self.tasks,
             process=Process.sequential,
-            verbose=2,
+            verbose=True,
             memory=True,
             planning=True
         )
@@ -221,7 +240,7 @@ class JurisAIOrchestrator:
                 agents=[self.crew_instance.document_analyst(), self.crew_instance.legal_advisor()],
                 tasks=[self.crew_instance.document_analysis_task(), self.crew_instance.legal_advice_task()],
                 process=Process.sequential,
-                verbose=2
+                verbose=True
             )
             
             # Add additional inputs for legal advice task
