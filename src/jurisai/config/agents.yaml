@@ -33,7 +33,7 @@ legal_advisor:
     when cases require human lawyer involvement, and ensuring all legal guidance meets
     professional standards. You prioritize client welfare and legal compliance.
   verbose: true
-  allow_delegation: true
+  allow_delegation: false
   max_iter: 5
   memory: true
 

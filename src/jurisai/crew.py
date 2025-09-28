@@ -25,25 +25,29 @@ class JurisAICrew():
         self.setup_tools()
     
     def setup_llm(self):
-        """Initialize AWS Bedrock LLM"""
+        """Initialize AWS Bedrock LLM using LiteLLM"""
         try:
-            self.bedrock_client = boto3.client(
-                'bedrock-runtime',
-                region_name=os.getenv('AWS_DEFAULT_REGION', 'us-east-1'),
-                aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
-                aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY')
+            # Configure LiteLLM environment variables
+            os.environ['AWS_ACCESS_KEY_ID'] = os.getenv('AWS_ACCESS_KEY_ID', '')
+            os.environ['AWS_SECRET_ACCESS_KEY'] = os.getenv('AWS_SECRET_ACCESS_KEY', '')
+            os.environ['AWS_DEFAULT_REGION'] = os.getenv('AWS_DEFAULT_REGION', 'us-east-1')
+            
+            # Set the model name for LiteLLM
+            model_name = os.getenv('BEDROCK_MODEL_ID', 'us.amazon.nova-lite-v1:0')
+            self.litellm_model = f"bedrock/{model_name}"
+            
+            # Test LiteLLM connection
+            from litellm import completion
+            test_response = completion(
+                model=self.litellm_model,
+                messages=[{"role": "user", "content": "Hello"}],
+                max_tokens=10,
+                temperature=0.1
             )
             
-            self.llm = ChatBedrock(
-                client=self.bedrock_client,
-                model_id=os.getenv('BEDROCK_MODEL_ID', 'anthropic.claude-3-sonnet-20240229-v1:0'),
-                model_kwargs={
-                    "max_tokens": 4096,
-                    "temperature": 0.1,
-                    "top_p": 0.9
-                }
-            )
-            print("✅ AWS Bedrock LLM initialized successfully")
+            # If test succeeds, set up the LLM for CrewAI
+            self.llm = self.litellm_model
+            print("✅ AWS Bedrock LLM initialized successfully with LiteLLM")
             
         except Exception as e:
             print(f"⚠️ Error initializing Bedrock LLM: {e}")
@@ -51,21 +55,15 @@ class JurisAICrew():
             self.setup_openai_fallback()
     
     def setup_openai_fallback(self):
-        """Setup OpenAI as fallback LLM"""
+        """Setup OpenAI as fallback LLM using LiteLLM"""
         try:
-            from langchain_openai import ChatOpenAI
+            # Set OpenAI API key for LiteLLM
+            os.environ['OPENAI_API_KEY'] = os.getenv('OPENAI_API_KEY', '')
             
-            self.llm = ChatOpenAI(
-                model="gpt-4o-mini",
-                temperature=0.1,
-                max_tokens=4096,
-                api_key=os.getenv('OPENAI_API_KEY')
-            )
-            print("✅ OpenAI LLM initialized as fallback")
+            # Use LiteLLM model string for OpenAI
+            self.llm = "gpt-4o-mini"
+            print("✅ OpenAI LLM initialized as fallback with LiteLLM")
             
-        except ImportError:
-            print("❌ OpenAI package not available. Please install langchain-openai")
-            self.llm = None
         except Exception as e:
             print(f"❌ Error initializing OpenAI fallback: {e}")
             self.llm = None
@@ -185,11 +183,21 @@ class JurisAIOrchestrator:
                 'client_query': query,
                 'client_type': client_type,
                 'jurisdiction': jurisdiction,
-                'client_situation': f"Client ({client_type}) has asked: {query}"
+                'client_situation': f"Client ({client_type}) has asked: {query}",
+                'research_results': 'Legal research will be conducted',
+                'document_analysis': 'No document analysis required for this query'
             }
             
-            # Execute the crew
-            result = self.crew_instance.crew().kickoff(inputs=inputs)
+            # Create a targeted crew for legal queries (research + advice only)
+            legal_query_crew = Crew(
+                agents=[self.crew_instance.legal_researcher(), self.crew_instance.legal_advisor()],
+                tasks=[self.crew_instance.legal_research_task(), self.crew_instance.legal_advice_task()],
+                process=Process.sequential,
+                verbose=True
+            )
+            
+            # Execute the targeted crew
+            result = legal_query_crew.kickoff(inputs=inputs)
             
             print("✅ Legal query processed successfully")
             return {

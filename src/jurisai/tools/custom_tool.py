@@ -2,31 +2,49 @@ import os
 import boto3
 from typing import Dict, Any, Optional
 from crewai.tools import BaseTool
-from pydantic import Field
+from pydantic import Field, BaseModel
 import json
+
+class LegalResearchToolSchema(BaseModel):
+    query: str = Field(..., description="Legal research query")
+    jurisdiction: str = Field(default="federal", description="Legal jurisdiction (federal, state, etc.)")
 
 class LegalResearchTool(BaseTool):
     name: str = "Legal Research Tool"
     description: str = "Search legal databases for case law, statutes, and regulations"
+    args_schema: type[BaseModel] = LegalResearchToolSchema
 
-    def _run(self, query: str, jurisdiction: str = "federal") -> str:
+    def _run(self, query, jurisdiction: str = "federal") -> str:
         """
         Perform legal research using various sources
         
         Args:
-            query: Legal research query
+            query: Legal research query (string or dict)
             jurisdiction: Legal jurisdiction (federal, state, etc.)
         
         Returns:
             Research results as formatted string
         """
         try:
+            # Handle both string and dictionary inputs
+            if isinstance(query, dict):
+                # Extract the actual query text from dictionary
+                query_text = query.get('description', str(query))
+            else:
+                query_text = str(query)
+            
+            if isinstance(jurisdiction, dict):
+                # Extract the actual jurisdiction from dictionary
+                jurisdiction_text = jurisdiction.get('description', str(jurisdiction))
+            else:
+                jurisdiction_text = str(jurisdiction)
+            
             # In a real implementation, this would connect to legal databases
             # For demo purposes, we'll simulate research results
             
             research_results = {
-                "query": query,
-                "jurisdiction": jurisdiction,
+                "query": query_text,
+                "jurisdiction": jurisdiction_text,
                 "case_law": [
                     {
                         "case_name": "Sample v. Case (2023)",
@@ -74,31 +92,49 @@ class LegalResearchTool(BaseTool):
         formatted += f"Analysis: {results['analysis']}\n"
         return formatted
 
+class DocumentAnalysisToolSchema(BaseModel):
+    document_content: str = Field(..., description="Text content of the document")
+    analysis_type: str = Field(default="general", description="Type of analysis (general, contract, risk, etc.)")
+
 class DocumentAnalysisTool(BaseTool):
     name: str = "Document Analysis Tool"
     description: str = "Analyze legal documents for key terms, risks, and recommendations"
+    args_schema: type[BaseModel] = DocumentAnalysisToolSchema
     
-    def _run(self, document_content: str, analysis_type: str = "general") -> str:
+    def _run(self, document_content, analysis_type: str = "general") -> str:
         """
         Analyze legal document content
         
         Args:
-            document_content: Text content of the document
+            document_content: Text content of the document (string or dict)
             analysis_type: Type of analysis (general, contract, risk, etc.)
         
         Returns:
             Document analysis results
         """
         try:
+            # Handle both string and dictionary inputs
+            if isinstance(document_content, dict):
+                # Extract the actual content from dictionary
+                content_text = document_content.get('description', str(document_content))
+            else:
+                content_text = str(document_content)
+            
+            if isinstance(analysis_type, dict):
+                # Extract the actual analysis type from dictionary
+                analysis_type_text = analysis_type.get('description', str(analysis_type))
+            else:
+                analysis_type_text = str(analysis_type)
+            
             # In a real implementation, this would use AWS Textract, Comprehend, etc.
             # For demo purposes, we'll simulate document analysis
             
             analysis_results = {
-                "document_type": self._identify_document_type(document_content),
-                "key_terms": self._extract_key_terms(document_content),
-                "risk_factors": self._identify_risks(document_content),
-                "recommendations": self._generate_recommendations(document_content, analysis_type),
-                "compliance_issues": self._check_compliance(document_content)
+                "document_type": self._identify_document_type(content_text),
+                "key_terms": self._extract_key_terms(content_text),
+                "risk_factors": self._identify_risks(content_text),
+                "recommendations": self._generate_recommendations(content_text, analysis_type_text),
+                "compliance_issues": self._check_compliance(content_text)
             }
             
             formatted_analysis = self._format_document_analysis(analysis_results)
